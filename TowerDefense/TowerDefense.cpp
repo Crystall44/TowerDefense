@@ -161,35 +161,41 @@ int main()
 		else if (n == 2) {
 			system("cls");
 			printf("Количество монет = %d\n", shop.cash);
-			printf("1 - Купить башню(40 монет)\n2 - Прокачать башню\n3 - Другое\n4 - выход");
+			printf("1 - Купить башню(40 монет)\n2 - Прокачать башню\n3 - Другое\n4 - Выход");
 			do {
 				scanf("%hd", &n);
-			} while (n < 1 || n > 3);
+			} while (n < 1 || n > 4);
 			
 			if (n == 1) {
-				printf("Введите номер башни(1 - 8):");
+				printf("Введите номер башни(1 - 8, 0 - выход):");
 				do {
 					scanf("%hd", &n);
-				} while (n < 1 || n > 8);
-				if (shop.cash < 40) printf("У вас недостаточно средств.");
-				else if (shop.towers[n] == 0)TowerBuy(&towers[n], &shop, n, &map);
-				else printf("Эта башня уже построена.");
-				getchar();
+				} while (n < 0 || n > 8);
+				if (n != 0) {
+					if (shop.cash < 40) printf("У вас недостаточно средств.");
+					else if (shop.towers[n - 1] == 0) {
+						TowerBuy(&towers[n - 1], &shop, n - 1, &map);
+						printf("Башня построена.");
+					}
+					else printf("Эта башня уже построена.");
+					_getch();
+				}
 			}
 			else if (n == 2) {
 				printf("Введите номер башни(1 - 8, 0 - выход):");
 				do {
 					scanf("%hd", &n);
-					if (shop.towers[n] == 0) {
+					if (shop.towers[n - 1] == 0) {
 						printf("Эта башня ещё не построена.");
+						_getch();
 						n = 0;
 					}
-				} while ((n < 0 || n > 9) && shop.towers[n] == 0);
+				} while ((n < 0 || n > 9) && shop.towers[n - 1] == 0);
 				if (n != 0) {
 					int j = 0;
-					if (shop.towers[n] == -1) { 
+					if (shop.towers[n - 1] == -1) { 
 						printf("Эта башня уже прокачана на максимум.");
-						getchar();
+						_getch();
 						n = 0;
 					}
 					else {
@@ -198,12 +204,12 @@ int main()
 							scanf("%d", &j);
 						} while (j < 0 || j > 3);
 					}
-					if (shop.cash < towers[n].lvl * 15) {
+					if (shop.cash < towers[n - 1].lvl * 15) {
 						n = 0;
 						printf("У вас недостаточно средств.");
-						getchar();
+						_getch();
 					}
-					if (j != 0 && n != 0) TowerUpgrade(&towers[n], &shop, n, j);
+					if (j != 0 && n != 0) TowerUpgrade(&towers[n - 1], &shop, n - 1, j);
 				}
 			}
 			else if (n == 3) {
@@ -212,13 +218,13 @@ int main()
 					scanf("%hd", &n);
 				} while (n < 1 || n > 3);
 				if (n == 1) {
-					if (shop.cash < 200) { 
+					if (shop.cash < 20) { 
 						printf("У вас недостаточно средств.");
 						_getch();
 					}
 					else {
 						mainTower.hp += 500;
-						shop.cash = shop.cash - 200;
+						shop.cash = shop.cash - 20;
 					}
 				}
 				else if (n == 2) {
@@ -227,9 +233,9 @@ int main()
 						scanf("%hd", &n);
 					} while (n < 0 || n > 8);
 					if (n != 0) {
-						if (shop.towers[n] == 0) {
+						if (shop.towers[n - 1] == 0) {
 							printf("Эта башня ещё не построена.");
-							getchar();
+							_getch();
 						}
 						else {
 							printf("Вы уверены? Да - 1. Отмена - 0. Эта башня имеет %d уровень. Деньги за постройку и улчения назад вы не получите!", towers[n].lvl);
@@ -238,8 +244,9 @@ int main()
 								scanf("%d", &j);
 							} while (j < 0 || j > 1);
 							if (j == 1) {
-								shop.towers[n] = 0;
-								towers[n] = { 0, 0, 0, 0 };
+								shop.towers[n - 1] = 0;
+								towers[n - 1] = { 0, 0, 0, 0 };
+								map.towerPlace[5 * n - 3] = '0';
 							}
 						}
 					}
@@ -248,7 +255,7 @@ int main()
 			n = 1;
 			system("cls");
 		}
-	} while (n != 3);
+	} while (n != 4);
 	return 0;
 }
 
