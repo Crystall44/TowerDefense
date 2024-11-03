@@ -1,4 +1,5 @@
 #pragma once
+#define _CRT_CECURE_NO_WARNINGS
 #include <iostream>
 #include <time.h>
 #include <windows.h>
@@ -18,21 +19,19 @@ private:
 public:
 	// Конструктор инициализирует врага
 	Enemy() {
-	}
-	void NewEnemy(char n[], int c, short int h, short int d, char p) {
-		void setName(char n[]);
-		void setCost(int c);
-		void setHp(int h);
-		void setDmg(int d);
-		void setPct(char p);
+		hp = 0;
+		cost = 0;
+		dmg = 0;
+		pct = ' ';
 		place = -1;
 	}
-	~Enemy();
-	void setName(char n[]) { strcpy(name, n); }
+	~Enemy() {}
+	void setName(const char n[]) { strcpy_s(name,30, n); }
 	void setHp(int h) { hp = h; }
 	void setCost(int c) { cost = c; }
 	void setDmg(int d) { dmg = d; }
 	void setPct(char p) { pct = p; }
+	
 	void takeDmg(short int damage) {
 		hp -= damage;
 	}
@@ -43,6 +42,9 @@ public:
 
 	char getPct() {
 		return pct;
+	}
+	char getHp() {
+		return hp;
 	}
 
 	void move() {
@@ -83,7 +85,7 @@ public:
 	}
 	~Tower() {
 		std::cout << "Башня разрушена, вы проиграли!" << std::endl;
-	};
+	}
 	void takeDmg(short int damage) {
 		hp -= damage;
 	}
@@ -100,7 +102,7 @@ public:
 		return hp;
 	}
 	bool isNear(int enemyPlace) {
-		return (enemyPlace >= 36);
+		return (enemyPlace >= 35);
 	}
 	void repair() {
 		hp += 500;
@@ -142,11 +144,13 @@ public:
 		return lvl;
 	}
 	bool isNear(int enemyPlace, int towerPlace) {
-		return (enemyPlace >= (towerPlace - range) && enemyPlace <= (towerPlace + range));
+		if (towerPlace == 0) return (enemyPlace <= (towerPlace + range));
+		if (towerPlace == 7) return (enemyPlace >= (towerPlace - range));
+		return ((enemyPlace >= ((towerPlace * 5 + 2) - range)) && (enemyPlace <= ((towerPlace * 5 + 2) + range)));
 	}
 	void upDmg() {
 		lvl++;
-		dmg += 2;
+		dmg += 25;
 	}
 	void upRange() {
 		lvl++;
@@ -157,8 +161,8 @@ public:
 	}
 	void Build() {
 		lvl = 1;
-		range = 1;
-		dmg = 2;
+		range = 2;
+		dmg = 15;
 	}
 	void Del() {
 		lvl = 0;
@@ -171,7 +175,6 @@ public:
 class Map {
 private:
 	char place[40][3];
-	TowerDef towers[8];
 public:
 	Map() {
 		for (int i = 0; i < 40; i++) {
@@ -184,9 +187,9 @@ public:
 		}
 		place[39][1] = '9';
 	}
-	~Map();
-	void clear(int pos) {
-		place[pos][2] = ' ';
+	~Map() {};
+	void clear(int pos, int n) {
+		place[pos][n] = ' ';
 	}
 	void towerPlace(int num) {
 		place[num * 5 + 2][0] = 'T';
@@ -200,14 +203,11 @@ public:
 	void printMap() {
 		system("cls");
 		for (int i = 0; i < 3; i++) {
-			for (int j; j < 40; j++) {
+			for (int j = 0; j < 40; j++) {
 				std::cout << place[j][i];
 			}
 			std::cout << std::endl;
 		}
-	}
-	TowerDef* getTower(int i) {
-		return &towers[i - 1];
 	}
 };
 
@@ -223,25 +223,29 @@ public:
 		upgradeCost = 10;
 		mainUpgradeCost = 30;
 	}
-	void Info(Tower& tower, int& money, TowerDef& deftower, Map& gameMap) {
+	void Info(Tower& tower, int& money, TowerDef deftowers[], Map& gameMap) {
 		int choice;
 		do {
 			system("cls");
 			std::cout << "  ---Магазин---  \n1.Главная башня\n2.Вспомогательные башни\n3.Выход\nВаши средства - " << money << "\n";
 			std::cin >> choice;
 			switch (choice) {
-			case 1:
+			case 1: {
 				tower.Info();
+				int choice2;
 				do {
 					std::cout << "\n1.Восполнить здоровье - " << repairCost << "\n2.Улучшить - " << mainUpgradeCost << "\n3.Выход\n";
-					std::cin >> choice;
-					switch (choice) {
+					std::cin >> choice2;
+					switch (choice2) {
 					case 1:
 						if (money >= repairCost) {
 							tower.getHp();
 							repairCost += 10;
 						}
-						else std::cout << "Недостаточно средств!";
+						else { 
+							std::cout << "Недостаточно средств!";
+							system("pause");
+						}
 						break;
 					case 2:
 						if (money >= mainUpgradeCost && tower.getLvl() < 10) {
@@ -251,50 +255,62 @@ public:
 						}
 						else if (money < mainUpgradeCost) {
 							std::cout << "Недостаточно средств!";
+							system("pause");
 						}
-						else std::cout << "Главная башня прокачана на максимум.";
+						else { 
+							std::cout << "Главная башня прокачана на максимум.";
+							system("pause");
+						}
 						break;
 					case 3:
 						break;
 					default:
 						std::cout << "Неверный ввод.";
+						system("pause");
 					}
-				} while (choice != 3);
-				break;
-			case 2:
+				} while (choice2 != 3);
+				break; }
+			case 2:{
+				int choice2;
 				int i;
 				do {
 					std::cout << "Выберете башню(1-8):";
 					std::cin >> i;
 				} while (i < 1 || i > 8);
-				TowerDef* deftow = gameMap.getTower(i);
-				deftow->Info();
+				TowerDef& deftow = deftowers[i - 1];
+				deftow.Info();
 				do {
 					std::cout << "\n1.Купить башню - 10\n2.Улучшить - " << upgradeCost << "\n3.Удалить башню\n4.Выход\n";
-					std::cin >> choice;
-					switch (choice) {
+					std::cin >> choice2;
+					switch (choice2) {
 					case 1:
-						if (money >= 10 && deftower.getLvl() == 0) {
+						if (money >= 10 && deftow.getLvl() == 0) {
 							gameMap.towerPlace(i - 1);
-							deftow->Build();
+							deftow.Build();
 							money -= 10;
 						}
-						else if (deftow->getLvl() != 0) {
+						else if (deftow.getLvl() != 0) {
 							std::cout << "Эта башня уже построена!";
+							system("pause");
 						}
-						else std::cout << "Недостаточно средств!";
+						else {
+							std::cout << "Недостаточно средств!";
+							system("pause");
+						}
 						break;
 					case 2:
-						if (money >= upgradeCost && deftow->getLvl() < 10) {
+						if (money >= upgradeCost && deftow.getLvl() < 10) {
 							std::cout << "1.Увеличить урон(+2)\n2.Увеличить дальность(+1)\n3.Выход\n";
 							do {
 								std::cin >> choice;
 							} while (choice < 1 && choice > 3);
 							if (choice == 1) {
-								deftow->upDmg();
+								deftow.upDmg();
+								money -= upgradeCost;
 							}
 							else if (choice == 2) {
-								deftow->upRange();
+								deftow.upRange();
+								money -= upgradeCost;
 							}
 						}
 						break;
@@ -302,36 +318,37 @@ public:
 						std::cout << "Вы уверены?\n1.Удалить башню\n2.Назад\n";
 						std::cin >> choice;
 						if (choice == 1) {
-							deftow->Del();
+							deftow.Del();
 							gameMap.towerBrake(i - 1);
 						}
 						break;
 					case 4:break;
-					default: std::cout << "Неверный ввод!\n";
+					default: {std::cout << "Неверный ввод!\n";
+						system("pause"); }
 					}
-				} while (choice != 4);
-			case 3:break;
-			default:std::cout << "Неверный ввод!\n";
+				} while (choice2 != 4);
 			}
-		} while (choice != 4);
+			case 3: {
+				break;
+			}
+			default: {std::cout << "Неверный ввод!\n"; }
+			}
+		} while (choice != 3);
 	}
 };
 
 class Game {
-private:
-	Tower mainTower;
-	Map gameMap;
-	Shop shop;
-	Enemy** enemys;
+public:
 	int money;
 	int enemysCount;
 	int enemyMoney;
+	Enemy** enemys;
 public:
 	Game() {
-		enemys = nullptr;
 		enemysCount = 0;
 		money = 20;
-		enemyMoney = 10;
+		enemyMoney = 20;
+		enemys = nullptr;
 	}
 	~Game() {
 		delete[] enemys;
@@ -345,78 +362,104 @@ public:
 	void upenemys() {
 		enemyMoney += 10;
 	}
-	void buyEnemy(Enemy*& enemies, int& enemyCount) {
+	void buyEnemy() {
 		int r = rand() % 3;
-		Enemy newEn;
+		r++;
+		Enemy* newEnemy = new Enemy();
 		switch (r) {
 		case 1:
-			newEn.NewEnemy("Zombe", 4, 100, 10, 'Z');
+			newEnemy->setName("Zombe");
+			newEnemy->setCost(4);
+			newEnemy->setHp(100);
+			newEnemy->setDmg(10);
+			newEnemy->setPct('Z');
 			break;
 		case 2:
-			newEn.NewEnemy("Skeleton", 2, 30, 20, 'S');
+			newEnemy->setName("Skeleton");
+			newEnemy->setCost(2);
+			newEnemy->setHp(30);
+			newEnemy->setDmg(20);
+			newEnemy->setPct('S');
 			break;
 		case 3:
-			newEn.NewEnemy("Angry Zombe", 6, 75, 25, 'A');
+			newEnemy->setName("Angry Zombe");
+			newEnemy->setCost(6);
+			newEnemy->setHp(75);
+			newEnemy->setDmg(25);
+			newEnemy->setPct('A');
 			break;
 		}
-		if (money >= newEn.getCost()) {
-			Enemy** newenemys = new Enemy * [enemysCount + 1];
-			for (int i = 0; i < enemyCount; ++i) {
+		if (enemyMoney >= newEnemy->getCost()) {
+			enemyMoney -= newEnemy->getCost();
+			Enemy** newenemys = new Enemy* [enemysCount + 1];
+			for (int i = 0; i < enemysCount; ++i) {
 				newenemys[i] = enemys[i];
 			}
-			newenemys[enemyCount] = &newEn;
+			newenemys[enemysCount] = newEnemy;
 			delete[] enemys;
 			enemys = newenemys;
 			enemysCount++;
-			enemyMoney -= newEn.getCost();
 		}
-		else delete newEn;
+		else delete newEnemy;
 	}
-	bool Wave(Tower& mainTower, TowerDef* towers) {
-		int k = 0; bool f = 1; int i = 0;
+	bool Wave(Tower& mainTower, TowerDef* towers, Map& gameMap) {
+		int k = 0; bool f = true; int i = 0; int chek = enemysCount;
 		do {
-			if (k != 0) {
-				for (i; i < k; i++) {
-					for (int j = 0; j < 8; j++) {
-						if (towers[j].isNear(enemys[i]->getPlace(), j * 5 + 2)) {
+			if (k < chek) {
+				gameMap.placeEnemy(0, enemys[k]->getPct());
+				k++;
+				enemys[k - 1]->move();
+			}
+			for (int j = 0; j < 8; j++) {
+				for (i = 0; i < enemysCount; i++) {
+					if (enemys[i]->isAlive()) {
+						if (towers[j].isNear(enemys[i]->getPlace(), j) && (towers[j].getLvl() != 0)) {
 							enemys[i]->takeDmg(towers[j].getDamage());
-						}
-						if (mainTower.isNear(enemys[i]->getPlace())) {
-							enemys[i]->takeDmg(mainTower.getDamage());
-						}
-						if (enemys[i]->isAlive()) {
-							if (enemys[i]->getPlace() != 38) {
-								enemys[i]->move();
-							}
-							else {
-								mainTower.takeDmg(enemys[i]->getDmg());
-							}
-						}
-						else {
-							gameMap.clear(enemys[i]->getPlace());
-							money += enemys[i]->getCost() * 2;
-							delete enemys[i];
-							i++;
+							break;
 						}
 					}
 				}
 			}
-			
-			if (k < enemysCount) {
-				gameMap.placeEnemy(0, enemys[k]->getPct());
-				k++;
-				enemys[k]->move();
+			for (i = 0; i < enemysCount; i++) {
+				if (enemys[i]->isAlive() && (enemys[i] != nullptr)) {
+				if (mainTower.isNear(enemys[i]->getPlace())) {
+						enemys[i]->takeDmg(mainTower.getDamage());
+						printf("%d\n", enemys[i]->getHp());
+						break;
+					}
+				}
 			}
-			i -= enemysCount;
-			if (i == enemysCount) f = 0;
+			for (int i = 0; i < enemysCount; i++) {
+				if (enemys[i]->isAlive()) {
+					if (enemys[i]->getPlace() != 38 && enemys[i]->getPlace() >= 0) {
+						gameMap.clear(enemys[i]->getPlace(), 1);
+						enemys[i]->move();
+						gameMap.placeEnemy(enemys[i]->getPlace(), enemys[i]->getPct());
+					}
+					else {
+						mainTower.takeDmg(enemys[i]->getDmg());
+					}
+				}
+				else {
+					gameMap.clear(enemys[i]->getPlace(), 1);
+					money += enemys[i]->getCost() * 2;
+					delete enemys[i];
+					for (int j = i; j < enemysCount - 1; j++) enemys[j] = enemys[j + 1];
+					enemysCount--;
+					i--;
+				}
+			}
+			gameMap.printMap();
+			Sleep(500);
+			if (enemysCount == 0) f = 0;
 			if (mainTower.isAlive() != true) f = 0;
-			Sleep(2000);
 		} while (f);
 		if (mainTower.isAlive() != true) { 
 			std::cout << "Вы проиграли!"; 
 			return 0;
 		}
 		else {
+			upenemys();
 			return 1;
 		}
 	}

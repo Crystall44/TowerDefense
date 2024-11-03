@@ -1,7 +1,11 @@
 #pragma once
+#define _CRT_CECURE_NO_WARNINGS
 #include <iostream>
 #include <time.h>
 #include <windows.h>
+#include <cstring>
+#include <cstdlib>
+
 
 //Структура врага
 class Enemy {
@@ -14,22 +18,25 @@ private:
 	int place;
 public:
 	// Конструктор инициализирует врага
-	Enemy(const char n*, int c, short int h, short int d, char p) {
-		setName(n) {strcpy(name, n, 30)};
-		setCost(c) {cost = c};
-		setHp(h) {hp = h};
-		setDmg(d) {dmg = d};
-		setPct(p) {pct = p};
+	Enemy() {
+		hp = 0;
+		cost = 0;
+		dmg = 0;
+		pct = ' ';
 		place = -1;
 	}
-	~Enemy();
-
+	~Enemy() {};
+	void setName(const char n[]) { strcpy(name, n); }
+	void setHp(int h) { hp = h; }
+	void setCost(int c) { cost = c; }
+	void setDmg(int d) { dmg = d; }
+	void setPct(char p) { pct = p; }
 	void takeDmg(short int damage) {
-		hp -= damage
+		hp -= damage;
 	}
 
 	bool isAlive() {
-		return (hp > 0)
+		return (hp > 0);
 	}
 
 	char getPct() {
@@ -67,15 +74,14 @@ private:
 	short int lvl;
 	short int dmg;
 public:
-	Tower(short int h, char l, short int d) {
-		setHp(short int h) { hp = h };
-		setLvl(short int l) { lvl = l };
-		setDmg(short int d) { dmh = d };
+	Tower() {
+		hp = 3000;
+		lvl = 1;
+		dmg = 20;
 	}
 	~Tower() {
 		std::cout << "Башня разрушена, вы проиграли!" << std::endl;
 	};
-
 	void takeDmg(short int damage) {
 		hp -= damage;
 	}
@@ -103,7 +109,7 @@ public:
 		dmg += 20;
 	}
 	void Info() {
-		std::cout << "Здоровье = " << hp << ", урон = ", << dmg << ", уровень = " << lvl << "\n";
+		std::cout << "Здоровье = " << hp << ", урон = " << dmg << ", уровень = " << lvl << "\n";
 	}
 };
 
@@ -114,16 +120,19 @@ private:
 	short int lvl;
 	short int range;
 public:
-	TowerDef(short int d, char l, short int r) {
-		setLvl(char l) { lvl = l };
-		setDmg(short int d) { dmh = d };
-		setRange(short int r) { range = r };
+	TowerDef() {
+		dmg = 0;
+		lvl = 0;
+		range = 0;
 	}
 	~TowerDef() {
 		dmg = 0;
 		lvl = 0;
 		range = 0;
 	}
+	void setLvl(char l) { lvl = l; }
+	void setDmg(short int d) { dmg = d; }
+	void setRange(short int r) { range = r; }
 	short int getDamage() {
 		return dmg;
 	}
@@ -142,7 +151,7 @@ public:
 		range += 1;
 	}
 	void Info() {
-		std::cout << "Уровень = " << lvl << ", урон = ", << dmg << ", дальность = " << range << "\n";
+		std::cout << "Уровень = " << lvl << ", урон = " << dmg << ", дальность = " << range << "\n";
 	}
 	void Build() {
 		lvl = 1;
@@ -160,7 +169,6 @@ public:
 class Map {
 private:
 	char place[40][3];
-	TowerDef towers[8];
 public:
 	Map() {
 		for (int i = 0; i < 40; i++) {
@@ -172,19 +180,16 @@ public:
 			place[i][0] = '0';
 		}
 		place[39][1] = '9';
-		for (int i = 0; i < 8; i++) {
-			towers[i].Del;
-		}
 	}
-	~Map();
+	~Map() {};
 	void clear(int pos) {
 		place[pos][2] = ' ';
 	}
 	void towerPlace(int num) {
-		place[num * 5 + 2][0] = "T";
+		place[num * 5 + 2][0] = 'T';
 	}
 	void towerBrake(int num) {
-		place[num * 5 + 2][0] = "0";
+		place[num * 5 + 2][0] = '0';
 	}
 	void placeEnemy(int pos, char pct) {
 		place[pos][1] = pct;
@@ -198,9 +203,6 @@ public:
 			std::cout << std::endl;
 		}
 	}
-	TowerDef* getTower(int i) {
-		return &towers[i - 1];
-	}
 };
 
 //Структура магазина
@@ -210,23 +212,23 @@ private:
 	int upgradeCost;
 	int mainUpgradeCost;
 public:
-	openShop() {
+	void openShop() {
 		repairCost = 20;
 		upgradeCost = 10;
 		mainUpgradeCost = 30;
 	}
-	void Info(Tower& tower, int& money, TowerDef& deftower, Map& gameMap) {
+	void Info(Tower& tower, int& money, TowerDef deftowers[], Map& gameMap) {
 		int choice;
 		do {
-			syctem("cls");
-			std::cout << "  ---Магазин---  \n1.Главная башня\n2.Вспомогательные башни\n3.Выход\nВаши средства - " << money <<"\n";
-			std::sin >> choice;
+			system("cls");
+			std::cout << "  ---Магазин---  \n1.Главная башня\n2.Вспомогательные башни\n3.Выход\nВаши средства - " << money << "\n";
+			std::cin >> choice;
 			switch (choice) {
 			case 1:
-				tower.Info;
+				tower.Info();
 				do {
 					std::cout << "\n1.Восполнить здоровье - " << repairCost << "\n2.Улучшить - " << mainUpgradeCost << "\n3.Выход\n";
-					std::sin >> choice;
+					std::cin >> choice;
 					switch (choice) {
 					case 1:
 						if (money >= repairCost) {
@@ -236,7 +238,7 @@ public:
 						else std::cout << "Недостаточно средств!";
 						break;
 					case 2:
-						if (money >= mainUpgradeCost && tower.getLvl < 10) {
+						if (money >= mainUpgradeCost && tower.getLvl() < 10) {
 							tower.upDmg();
 							money -= mainUpgradeCost;
 							mainUpgradeCost += 20;
@@ -257,70 +259,68 @@ public:
 				int i;
 				do {
 					std::cout << "Выберете башню(1-8):";
-					std::sin >> i;
+					std::cin >> i;
 				} while (i < 1 || i > 8);
-				TowerDef* deftow = gameMap.getTower(i);
-				deftow->Info;
+				TowerDef& deftow = deftowers[i - 1];
+				deftow.Info();
 				do {
 					std::cout << "\n1.Купить башню - 10\n2.Улучшить - " << upgradeCost << "\n3.Удалить башню\n4.Выход\n";
-					std::sin >> choice;
+					std::cin >> choice;
 					switch (choice) {
 					case 1:
-						if (money >= 10 && deftower.getLvl == 0) {
-							gameMap.towerPlace[i - 1];
-							deftow->Build;
+						if (money >= 10 && deftow.getLvl() == 0) {
+							gameMap.towerPlace(i - 1);
+							deftow.Build();
 							money -= 10;
 						}
-						else if (deftow->getLvl != 0) {
+						else if (deftow.getLvl() != 0) {
 							std::cout << "Эта башня уже построена!";
 						}
 						else std::cout << "Недостаточно средств!";
 						break;
 					case 2:
-						if (money >= upgradeCost && deftow->getLvl < 10) {
+						if (money >= upgradeCost && deftow.getLvl() < 10) {
 							std::cout << "1.Увеличить урон(+2)\n2.Увеличить дальность(+1)\n3.Выход\n";
 							do {
-								std::sin >> choice;
+								std::cin >> choice;
 							} while (choice < 1 && choice > 3);
 							if (choice == 1) {
-								deftow->upDmg;
+								deftow.upDmg();
+								money -= upgradeCost;
 							}
 							else if (choice == 2) {
-								deftow->upRange;
+								deftow.upRange();
+								money -= upgradeCost;
 							}
 						}
 						break;
 					case 3:
 						std::cout << "Вы уверены?\n1.Удалить башню\n2.Назад\n";
-						std::sin >> choice;
+						std::cin >> choice;
 						if (choice == 1) {
-							deftow->Del;
-							gameMap.towerBrake[i - 1];
+							deftow.Del();
+							gameMap.towerBrake(i - 1);
 						}
 						break;
 					case 4:break;
 					default: std::cout << "Неверный ввод!\n";
 					}
-				} 
+				} while (choice != 4);
 			case 3:break;
 			default:std::cout << "Неверный ввод!\n";
-			}while (choice != 4);
-		}
+			}
+		} while (choice != 4);
 	}
 };
 
 class Game {
-private:
-	Tower mainTower;
-	Map gameMap;
-	Shop shop;
-	Enemy** enemys;
+public:
 	int money;
 	int enemysCount;
 	int enemyMoney;
+	Enemy** enemys;
 public:
 	Game() {
-		enemys(nullptr);
 		enemysCount = 0;
 		money = 20;
 		enemyMoney = 10;
@@ -328,7 +328,7 @@ public:
 	~Game() {
 		delete[] enemys;
 	}
-	void getMoney() {
+	int getMoney() {
 		return money;
 	}
 	void earnMoney(int n) {
@@ -337,78 +337,95 @@ public:
 	void upenemys() {
 		enemyMoney += 10;
 	}
-	void buyEnemy(Enemy*& enemies, int& enemyCount) {
+	void buyEnemy() {
 		int r = rand() % 3;
-		Enemy newEnemy;
+		Enemy* newEnemy = new Enemy;
 		switch (r) {
 		case 1:
-			newEnemy = Enemy("Zombe", 4, 100, 10, 'Z');
+			newEnemy->setName("Zombe");
+			newEnemy->setCost(4);
+			newEnemy->setHp(100);
+			newEnemy->setDmg(10);
+			newEnemy->setPct('Z');
 			break;
 		case 2:
-			newEnemy = Enemy("Skeleton", 2, 30, 20, 'S');
+			newEnemy->setName("Skeleton");
+			newEnemy->setCost(2);
+			newEnemy->setHp(30);
+			newEnemy->setDmg(20);
+			newEnemy->setPct('S');
 			break;
 		case 3:
-			newEnemy = Enemey("Angry Zombe", 6, 75, 25, 'A');
+			newEnemy->setName("Angry Zombe");
+			newEnemy->setCost(6);
+			newEnemy->setHp(75);
+			newEnemy->setDmg(25);
+			newEnemy->setPct('A');
 			break;
 		}
-		if (money >= newEnemy.getCost()) {
-			Enemy** newenemys = new Enemey * [enemysCount + 1];
-			for (int i = 0; i < enemyCount; ++i) {
+		if (enemyMoney >= newEnemy->getCost()) {
+			Enemy** newenemys = new Enemy * [enemysCount + 1];
+			for (int i = 0; i < enemysCount; ++i) {
 				newenemys[i] = enemys[i];
 			}
-			newenemys[enemyCount] = newEnemy;
+			newenemys[enemysCount] = newEnemy;
 			delete[] enemys;
 			enemys = newenemys;
 			enemysCount++;
-			enemyMoney -= newEnemy.getCost;
+			enemyMoney -= newEnemy->getCost();
 		}
 		else delete newEnemy;
 	}
-	bool Wave(Tower& mainTower, TowerDef* towers) {
-		int k = 0; bool f = 1; int i = 0;
+	bool Wave(Tower& mainTower, TowerDef* towers, Map& gameMap) {
+		int k = 0; bool f = 1; int i = 0; int chek = enemysCount;
 		do {
-			if (k != 0) {
-				for (i; i < k; i++) {
-					for (int j = 0; j < 8; j++) {
-						if (towers[j].isNear[enemys[i]->getPlace], j * 5 + 2) {
-							enemys[i]->takeDmg(towers[j].getDamage);
+			if (k < chek) {
+				gameMap.placeEnemy(0, enemys[k]->getPct());
+				k++;
+				enemys[k]->move();
+			}
+			for (i = 0; i < enemysCount; i++) {
+				for (int j = 0; j < 8; j++) {
+					for (i = 0; i < enemysCount; i++) {
+						if (enemys[i]->isAlive()) {
+							if (towers[j].isNear(enemys[i]->getPlace(), j)) {
+								enemys[i]->takeDmg(towers[j].getDamage());
+							}
 						}
-						if (mainTower.isNear(enemys[i]->getPlace)) {
-							enemys[i]->takeDmg(mainTower.getDamage);
+						if (enemys[i]->isAlive()) {
+							if (mainTower.isNear(enemys[i]->getPlace())) {
+								enemys[i]->takeDmg(mainTower.getDamage());
+							}
 						}
-						if (enemys[i]->isAlive) {
-							if (enemys[i]->getPlace != 38) {
-								enemys[i]->move;
+						if (enemys[i]->isAlive()) {
+							if (enemys[i]->getPlace() != 38) {
+								enemys[i]->move();
 							}
 							else {
-								mainTower.takeDmg(enemys[k]->getDmg);
+								mainTower.takeDmg(enemys[i]->getDmg());
 							}
 						}
 						else {
-							gameMap.clear(enemys[k]->getPlace);
-							delete enemys[k];
-							i++;
-							money += newEnemy.getCost * 2;
+							gameMap.clear(enemys[i]->getPlace());
+							money += enemys[i]->getCost() * 2;
+							delete enemys[i];
+							enemysCount--;
 						}
 					}
 				}
 			}
-			
-			if (k < enemysCount) {
-				gameMap.placeEnemy(0, enemys[k]->getPct);
-				k++;
-				enemys[k]->move;
-			}
-			i -= enemysCount;
-			if (i == enemysCount) f = 0;
-			if (mainTower.isAlive != true) f = 0;
+			gameMap.printMap();
 			Sleep(2000);
+			if (enemysCount == 0) f = 0;
+			if (mainTower.isAlive() != true) f = 0;
 		} while (f);
-		if (mainTower.isAlive != true) { 
+		if (mainTower.isAlive() != true) { 
 			std::cout << "Вы проиграли!"; 
 			return 0;
 		}
 		else {
+			earnMoney();
+			upenemys();
 			return 1;
 		}
 	}
