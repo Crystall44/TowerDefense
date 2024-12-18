@@ -125,11 +125,17 @@ public:
 	short int getDamage() {
 		return dmg;
 	}
-	short int* getLvl() {
-		return &lvl;
+	short int getLvl() {
+		return lvl;
 	}
-	short int* getHp() {
-		return &hp;
+	short int getHp() {
+		return hp;
+	}
+	void setHp(short int hp1) {
+		hp = hp1;
+	}
+	void setLvl(short int lvl1) {
+		lvl = lvl1;
 	}
 	bool isNear(int enemyPlace) {//Проверка на то,рядом ли враг с этой башней
 		return (enemyPlace >= 35);
@@ -148,70 +154,152 @@ public:
 	}
 };
 
+//Абстрактный класс
+class AbstractTower {
+public:
+	virtual void SpecialAblity() = 0;  //Виртуальная функция
+	virtual ~AbstractTower() {}
+};
 
-//Структура защищающей башни
-class TowerDef {
-private:
+//Класс защищающей башни
+class TowerDef : public AbstractTower {
+protected:
 	short int dmg;
 	short int lvl;
 	short int range;
 	bool boostTower;
+	int attackSpeed;
 public:
-	TowerDef() {
+	TowerDef(short int dmg1, short int lvl1, short int range1, bool boostTower1) {
+		dmg = dmg1;
+		lvl = lvl1;
+		range = range1;
+		boostTower = boostTower1;
+	}
+	virtual ~TowerDef() { //Виртуальный деструктор
 		dmg = 0;
 		lvl = 0;
 		range = 0;
 		boostTower = false;
+		attackSpeed = 0;
 	}
-	~TowerDef() {
-		dmg = 0;
-		lvl = 0;
-		range = 0;
+
+
+	TowerDef& operator=(const TowerDef& other) {
+		if (this != &other) {
+			lvl = other.lvl;
+			dmg = other.dmg;
+			range = other.range;
+		}
+		return *this;
 	}
-	void setLvl(short int l) { lvl = l; }
-	void setDmg(short int d) { dmg = d; }
-	void setRange(short int r) { range = r; }
-	short int getDamage() {
+	virtual void clone(const TowerDef& other) {
+		lvl = other.lvl;
+		dmg = other.dmg;
+		range = other.range;
+		boostTower = other.boostTower;
+		attackSpeed = other.attackSpeed;
+	}
+
+	virtual void setLvl(short int l) { lvl = l; }
+	virtual void setDmg(short int d) { dmg = d; }
+	virtual void setRange(short int r) { range = r; }
+	virtual short int getDamage() {
 		return dmg;
 	}
-	short int* getLvl() { //Возврат значения через указатель
+	virtual short int* getLvl() { //Возврат значения через указатель
 		return &lvl;
 	}
-	bool isNear(int enemyPlace, int towerPlace) {//Проверка рядом ли с башней враг
+	virtual bool isNear(int enemyPlace, int towerPlace) {//Проверка рядом ли с башней враг
 		return ((enemyPlace >= ((towerPlace * 5 + 2) - range)) && (enemyPlace <= ((towerPlace * 5 + 2) + range)));
 	}
-	void upDmg() {//Повышение урона
+	virtual void upDmg() {//Повышение урона
 		dmg += 25;
 	}
-	void upRange() {//Повышение дальности
+	virtual void upRange() {//Повышение дальности
 		range += 1;
 	}
-	void Info() {//Информация о башне
+	virtual void Info() {//Информация о башне
 		std::cout << "Уровень = " << lvl << ", урон = " << dmg << ", дальность = " << range << "\n";
 	}
-	void Build() {//Построить башню
+	virtual void Build() {//Построить башню
 		range = 2;
 		dmg = 15;
+		lvl = 1;
 	}
-	void Del() {//Удалить башню
+	virtual void Del() {//Удалить башню
 		lvl = 0;
 		range = 0;
 		dmg = 0;
 		boostTower = false;
 	}
-	bool isBoosted() {
+	virtual bool isBoosted() {
 		return boostTower;
 	}
-	void boosting() {
+	virtual void boosting() {
 		boostTower = true;
 	}
-	friend void Boost(TowerDef& tower);
+	virtual void Boost(TowerDef& tower) {
+		tower.dmg -= 10;
+		tower.boostTower = true;
+	};
+
+	virtual void SpecialAblity() override {
+		std::cout << "\nБазовая башня. Специальных возможностей нет.\n";
+	}
 };
 
-void Boost(TowerDef& tower) {
-	tower.dmg -= 10;
-	tower.boostTower = true;
+class SniperTower : public TowerDef {
+public:
+	SniperTower(short int dmg1, short int lvl1, short int range1, bool boostTower1) 
+		: TowerDef(dmg1, lvl1, range1, boostTower1) {}
+	~SniperTower() override {}
+
+	void SpecialAblity() override {
+		std::cout << "\nСпециальная способность - большой урон и дальность\n";
+	}
+	void Info() override {
+		TowerDef::Info();
+		std::cout << "Тип башни - Снайперская башня(увеличенный радиус и урон)\n";
+	}
+	void BuildSpecial() {
+		dmg = 20;
+		range = 5;
+		lvl = 1;
+		boostTower = false;
+	}
 };
+
+class RapidFireTower : public TowerDef {
+private:
+	int attackSpeed;
+public:
+	RapidFireTower(short int dmg1, short int lvl1, short int range1, bool boostTower1, int attackSpeed2) 
+		: TowerDef(dmg1, lvl1, range1, boostTower1), attackSpeed(attackSpeed2) {}
+	~RapidFireTower() override {}
+
+	RapidFireTower(const RapidFireTower& other) = delete;
+	void clone(const TowerDef& other) override {
+		const RapidFireTower* rapidtower = dynamic_cast<const RapidFireTower*>(&other);
+		if (rapidtower) {
+			TowerDef::clone(other);
+		}
+	}
+	void SpecialAblity() override {
+		std::cout << "\nСпециальная способность - малый урон и большая скорострельность\n";
+	}
+	void Info() override {
+		std::cout << "Тип башни: Башня скорострельности\n";
+	}
+	void BuildSpecial() {
+		dmg = 10;
+		range = 2;
+		lvl = 1;
+		boostTower = true;
+		attackSpeed = 2;
+	}
+};
+
 
 //Структура карты
 class Map {
@@ -233,8 +321,10 @@ public:
 	void clear(int pos, int n) {//Очистить позицию
 		place[pos][n] = ' ';
 	}
-	void towerPlace(int num) {//Поставить башню на позицию
-		place[num * 5 + 2][0] = 'T';
+	void towerPlace(int num, int n) {//Поставить башню на позицию
+		if (n == 1) place[num * 5 + 2][0] = 'T';
+		else if (n == 2) place[num * 5 + 2][0] = 'L';
+		else place[num * 5 + 2][0] = 'R';
 	}
 	void towerBrake(int num) {//Разрушение башни
 		place[num * 5 + 2][0] = '0';
@@ -265,7 +355,7 @@ public:
 		upgradeCost = 10;
 		mainUpgradeCost = 30;
 	}
-	void Info(Tower& tower, int& money, TowerDef deftowers[], Map& gameMap, int& booster) {//Диалог с пользователем и вызов функций по его выбору
+	void Info(Tower& tower, int& money, TowerDef *deftowers[], Map& gameMap, int& booster) {//Диалог с пользователем и вызов функций по его выбору
 		int choice;
 		do {
 			system("cls");
@@ -275,35 +365,33 @@ public:
 			case 1: {
 				tower.Info();
 				int choice2;
-				short int* mainTowerLvl = tower.getLvl();
-				short int* mainTowerHp = tower.getHp();
 				do {//Главная башня
 					std::cout << "\n1.Восполнить здоровье - " << repairCost << "\n2.Улучшить - " << mainUpgradeCost << "\n3.Выход\n";
 					std::cin >> choice2;
 					switch (choice2) {
 					case 1://Восполнение здоровья
 						if (money >= repairCost) {
-							*mainTowerHp += 500;
+							tower.setHp(tower.getHp() + 500);
 							repairCost += 10;
-							if (*mainTowerHp > 3000) *mainTowerHp = 3000;
+							if (tower.getHp() > 3000) tower.setHp(3000);
 						}
-						else { 
+						else {
 							std::cout << "Недостаточно средств!";
 							system("pause");
 						}
 						break;
 					case 2://Улучшение
-						if (money >= mainUpgradeCost && *mainTowerLvl < 10) {
+						if (money >= mainUpgradeCost && tower.getLvl() < 10) {
 							++tower;
 							money -= mainUpgradeCost;
 							mainUpgradeCost += 20;
-							*mainTowerLvl++;
+							tower.setLvl(tower.getLvl() + 1);
 						}
 						else if (money < mainUpgradeCost) {
 							std::cout << "Недостаточно средств!";
 							system("pause");
 						}
-						else { 
+						else {
 							std::cout << "Главная башня прокачана на максимум.";
 							system("pause");
 						}
@@ -316,55 +404,96 @@ public:
 					}
 				} while (choice2 != 3);
 				break; }
-			case 2:{//Вспомогательные башни
+			case 2: {//Вспомогательные башни
 				int choice2;
 				int i;
 				do {
 					std::cout << "Выберете башню(1-8):";
 					std::cin >> i;
 				} while (i < 1 || i > 8);
-				TowerDef& deftow = deftowers[i - 1];
-				deftow.Info();
-				short int* deftowerLvl = deftowers[i - 1].getLvl();
+				TowerDef* deftow = deftowers[i - 1];
+				deftow->Info();
 				do {
+					TowerDef* usual;
+					usual = new TowerDef(0, 0, 0, false);
+					SniperTower* sniper;
+					sniper = new SniperTower(0, 0, 0, false);
+					RapidFireTower* rapid;
+					rapid = new RapidFireTower(10, 2, 1, true, 2);
+					RapidFireTower* rapidTow;
+					
 					std::cout << "\n1.Купить башню - 10\n2.Улучшить - " << upgradeCost << "\n3.Удалить башню\n4.Выход\n";
 					std::cin >> choice2;
 					switch (choice2) {
 					case 1://Покупка башни
-						if (money >= 10 && *deftowerLvl == 0) {
-							gameMap.towerPlace(i - 1);
-							deftow.Build();
-							money -= 10;
-							*deftowerLvl++;
-						}
-						else if (*deftowerLvl != 0) {
-							std::cout << "Эта башня уже построена!";
-							system("pause");
+						std::cout << "\nВыберите тип башни:\n1 - Обычная(10)";
+						usual->SpecialAblity();
+						std::cout << "2 - Дальняя(25)";
+						sniper->SpecialAblity();
+						std::cout << "3 - Скорострельная(25)";
+						rapid->SpecialAblity();
+						int choice22;
+						do {
+							std::cin >> choice22;
+						} while (choice22 < 1 || choice22 > 3);
+						if (choice22 == 1) {
+							if (money >= 10 && *deftow->getLvl() == 0) {
+								gameMap.towerPlace(i - 1, 1);
+								deftow->Build();
+								money -= 10;
+							}
+							else if (*deftow->getLvl()) {
+								std::cout << "Эта башня уже построена!";
+								system("pause");
+							}
+							else {
+								std::cout << "Недостаточно средств!";
+								system("pause");
+							}
 						}
 						else {
-							std::cout << "Недостаточно средств!";
-							system("pause");
+							if (money >= 25 && *deftow->getLvl() == 0) {
+								if (choice22 == 2) {
+									gameMap.towerPlace(i - 1, 2);
+									sniper->BuildSpecial();
+									*deftow = *sniper;
+								}
+								else {
+									gameMap.towerPlace(i - 1, 3);
+									rapid->BuildSpecial();
+									deftow->clone(*rapid);
+								}
+								money -= 25;
+							}
+							else if (*deftow->getLvl() != 0) {
+								std::cout << "Эта башня уже построена!";
+								system("pause");
+							}
+							else {
+								std::cout << "Недостаточно средств!";
+								system("pause");
+							}
 						}
 						break;
 					case 2://Улучшение башни
-						if (money >= upgradeCost && *deftowerLvl < 10) {
+						if (money >= upgradeCost && (int)*deftow->getLvl() < 10) {
 							std::cout << "1.Увеличить урон(+2)\n2.Увеличить дальность(+1)\n3.Усиление(3x скорострелность башни)\n4.Выход\n";
 							do {
 								std::cin >> choice;
 							} while (choice < 1 && choice > 4);
 							if (choice == 1) {
-								deftow.upDmg();
+								deftow->upDmg();
 								money -= upgradeCost;
-								*deftowerLvl++;
+								deftow->setLvl((int)*deftow->getLvl() + 1);
 							}
 							else if (choice == 2) {
-								deftow.upRange();
+								deftow->upRange();
 								money -= upgradeCost;
-								*deftowerLvl++;
-							} 
+								deftow->setLvl((int)*deftow->getLvl() + 1);
+							}
 							else if (choice == 3) {
-								if (deftow.isBoosted() == false) {
-									deftow.boosting();
+								if (deftow->isBoosted() == false) {
+									deftow->boosting();
 									booster--;
 								}
 								else {
@@ -377,7 +506,7 @@ public:
 						std::cout << "Вы уверены?\n1.Удалить башню\n2.Назад\n";
 						std::cin >> choice;
 						if (choice == 1) {
-							deftow.Del();
+							deftow->Del();
 							gameMap.towerBrake(i - 1);
 						}
 						break;
@@ -385,6 +514,9 @@ public:
 					default: {std::cout << "Неверный ввод!\n";
 						system("pause"); }
 					}
+					delete usual;
+					delete sniper;
+					delete rapid;
 				} while (choice2 != 4);
 			}
 			case 3: {
@@ -392,8 +524,8 @@ public:
 			}
 			default: {std::cout << "Неверный ввод!\n"; }
 			}
-		} while (choice != 3);
-	}
+			} while (choice != 3);
+		}
 };
 //Класс самой игры, который отвечает за проведение волн и логику
 class Game {
@@ -405,7 +537,7 @@ private:
 public:
 	Game() {
 		enemysCount = 0;
-		money = 20;
+		money = 500;
 		enemyMoney = 20;
 	}
 	int getMoney() {
@@ -466,16 +598,16 @@ public:
 			enemys[enemysCount - 1]->setPlace(-1 * enemysCount);
 		}
 	}
-	bool Wave(Tower& mainTower, TowerDef* towers, Map& gameMap) {//Проведение волны
+	bool Wave(Tower& mainTower, TowerDef* towers[], Map& gameMap) {//Проведение волны
 		int k = 0; bool f = true; int i = 0; int chek = enemysCount;
 		do {
 			for (int j = 0; j < 8; j++) {//После башни пытаются выстрелить по одному из врагов
-				if (towers[j].isBoosted()) {
+				if (towers[j]->isBoosted()) {
 					for (int p = 0; p < 3; p++) {
 						for (i = 0; i < enemysCount; i++) {
 							if (enemys[i]->isAlive()) {
-								if (towers[j].isNear(enemys[i]->getPlace(), j) && (towers[j].getLvl() != 0) && enemys[i]->getPlace() >= 0) {
-									*enemys[i] - towers[j].getDamage(); //Один из примеров использования перегрузки
+								if (towers[j]->isNear(enemys[i]->getPlace(), j) && (towers[j]->getLvl() != 0) && enemys[i]->getPlace() >= 0) {
+									*enemys[i] - towers[j]->getDamage(); //Один из примеров использования перегрузки
 									break;
 								}
 							}
@@ -485,8 +617,8 @@ public:
 				else {
 					for (i = 0; i < enemysCount; i++) {
 						if (enemys[i]->isAlive()) {
-							if (towers[j].isNear(enemys[i]->getPlace(), j) && (towers[j].getLvl() != 0) && enemys[i]->getPlace() >= 0) {
-								*enemys[i] - towers[j].getDamage();
+							if (towers[j]->isNear(enemys[i]->getPlace(), j) && (towers[j]->getLvl() != 0) && enemys[i]->getPlace() >= 0) {
+								*enemys[i] - towers[j]->getDamage();
 								break;
 							}
 						}

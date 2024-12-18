@@ -13,7 +13,10 @@ int main()
 	srand(time(NULL));
 	setlocale(LC_ALL, "RUS");
 	Game game;
-	TowerDef towers[8];
+	TowerDef* towers[8];
+	for (int i = 0; i < 8; i++) {
+		towers[i] = new TowerDef(0, 0, 0, false);
+	}
 	for (int i = 0; i < 8; i++) gameMap.towerBrake(i);
 	std::cout << "Добро пожаловать в Tower Defence!\n";
 	bool gameOver = false;
