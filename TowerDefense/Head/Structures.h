@@ -9,16 +9,78 @@
 #include <vector>
 #include <memory>
 
+//Интерфейс поведения - движение врага
+class MoveStrategy {
+public:
+	virtual ~MoveStrategy() = default;
+	virtual void Move(int& place, int hp, int maxHp) = 0;
+};
+
+//Обычная скорость движение
+class NormalMove : public MoveStrategy {
+public:
+	void Move(int& place, int hp, int maxHp) override {
+		place++;//Движение на 1 клетку
+	}
+ };
+
+//Быстрое передвижение
+class FastMove : public MoveStrategy {
+public:
+	void Move(int& place, int hp, int maxHp) override {
+		place += 2;//Движение на 2 клетки
+	}
+};
+
+//Динамическое передвижение - ускоряется если здоровье меньше половины
+class AdaptiveMove : public MoveStrategy {
+public:
+	void Move(int& place, int hp, int maxHp) override {
+		if (hp > (maxHp/2)) {
+			place++;
+		}
+		else {
+			place += 2;
+		}
+	}
+};
+
+//Стоящее на месте поведение врага(будет использованно в будущем)
+class StuckMove : public MoveStrategy {
+public:
+	void Move(int& place, int hp, int maxHp) override {} //На месте(например,оглушение)
+};
+
+//Медленная скорость - для босса
+class SlowMove : public MoveStrategy {
+private:
+	int f;
+public:
+	SlowMove() {
+		f = 0;
+	}
+	void Move(int& place, int hp, int maxHp) override {
+		if (f == 0) {
+			f++;
+		}
+		else {
+			f = 0;
+			place++;
+		}
+	} 
+};
 
 //Структура врага
-class Enemy {
-private:
+class Enemy{
+protected:
 	std::string name;
 	int cost;
 	short int hp;
+	short int maxHp;
 	short int dmg;
 	char pct;
 	int place;
+	std::unique_ptr<MoveStrategy> moveStrategy;
 public:
 	// Конструктор инициализирует врага
 	Enemy() {
@@ -49,7 +111,10 @@ public:
 	}
 
 	void setName(const std::string& n) { name = n; }
-	void setHp(short int h) { hp = h; }
+	void setHp(short int h) { 
+		hp = h;
+		maxHp = hp;
+	}
 	void setCost(int c) { cost = c; }
 	void setDmg(short int d) { dmg = d; }
 	void setPct(char p) { pct = p; }
@@ -62,17 +127,23 @@ public:
 	bool isAlive() { //Проверка жив ли враг
 		return (hp > 0);
 	}
-
 	char getPct() { 
 		return pct;
+	}
+	std::string getName() {
+		return name;
 	}
 	short int getHp() {
 		return hp;
 	}
 	void setPlace(int p) { place = p; }
 
-	void Move() {//Движение врага на 1 клетку
-		place++;
+	void setMoveStrategy(std::unique_ptr<MoveStrategy> newStrategy) {
+		moveStrategy = std::move(newStrategy);
+	}
+
+	virtual void Move() {//Движение врага на 1 клетку
+		moveStrategy->Move(place, hp, maxHp);
 	}
 
 	short int getDmg() { 
@@ -100,6 +171,25 @@ public:
 	~BossEnemy() {};
 };
 
+
+class FastEnemy : public Enemy {
+public:
+	FastEnemy() : Enemy() {
+		setName("FastEnemy");
+		setHp(50);
+		setCost(10);
+		setDmg(20);
+		setPct('F');
+		maxHp = hp;
+		setPlace(-2);
+	}
+
+	void Move() override {
+		place += 2;
+	}
+
+	~FastEnemy() {}
+};
 
 //Структура главной башни
 class Tower {
@@ -181,11 +271,10 @@ public:
 		lvl = 0;
 		range = 0;
 		boostTower = false;
-		attackSpeed = 0;
 	}
 
 
-	TowerDef& operator=(const TowerDef& other) {
+	TowerDef& operator=(const TowerDef& other) { //Оператор копирования
 		if (this != &other) {
 			lvl = other.lvl;
 			dmg = other.dmg;
@@ -193,7 +282,7 @@ public:
 		}
 		return *this;
 	}
-	virtual void clone(const TowerDef& other) {
+	virtual void clone(const TowerDef& other) { //Глубокое копирование
 		lvl = other.lvl;
 		dmg = other.dmg;
 		range = other.range;
@@ -244,21 +333,23 @@ public:
 		tower.boostTower = true;
 	};
 
-	virtual void SpecialAblity() override {
+	virtual void SpecialAblity() override { //Перегрузка виртуальной функции абстрактного класса
 		std::cout << "\nБазовая башня. Специальных возможностей нет.\n";
 	}
 };
 
+//Класс башни - снайпера
 class SniperTower : public TowerDef {
 public:
+	//Конструктор,вызывающий конструктор базового класса
 	SniperTower(short int dmg1, short int lvl1, short int range1, bool boostTower1) 
 		: TowerDef(dmg1, lvl1, range1, boostTower1) {}
 	~SniperTower() override {}
 
-	void SpecialAblity() override {
+	void SpecialAblity() override { //Перегрузка оператора абстрактного класса
 		std::cout << "\nСпециальная способность - большой урон и дальность\n";
 	}
-	void Info() override {
+	void Info() override { //перегрузка оператора базового класса
 		TowerDef::Info();
 		std::cout << "Тип башни - Снайперская башня(увеличенный радиус и урон)\n";
 	}
@@ -270,6 +361,7 @@ public:
 	}
 };
 
+//Класс бишни скорострельности
 class RapidFireTower : public TowerDef {
 private:
 	int attackSpeed;
@@ -278,8 +370,9 @@ public:
 		: TowerDef(dmg1, lvl1, range1, boostTower1), attackSpeed(attackSpeed2) {}
 	~RapidFireTower() override {}
 
+	//Запрет конструктора копирования,который создан автоматически
 	RapidFireTower(const RapidFireTower& other) = delete;
-	void clone(const TowerDef& other) override {
+	void clone(const TowerDef& other) override { //Глубокое копирование
 		const RapidFireTower* rapidtower = dynamic_cast<const RapidFireTower*>(&other);
 		if (rapidtower) {
 			TowerDef::clone(other);
@@ -420,8 +513,6 @@ public:
 					sniper = new SniperTower(0, 0, 0, false);
 					RapidFireTower* rapid;
 					rapid = new RapidFireTower(10, 2, 1, true, 2);
-					RapidFireTower* rapidTow;
-					
 					std::cout << "\n1.Купить башню - 10\n2.Улучшить - " << upgradeCost << "\n3.Удалить башню\n4.Выход\n";
 					std::cin >> choice2;
 					switch (choice2) {
@@ -556,17 +647,18 @@ public:
 		enemyMoney += 20;
 	}
 	void buyEnemy(int wave) {//Рандомайзер и покупка врага(не пользователем, компьютером)
-		std::unique_ptr<Enemy> newEnemy = std::make_unique<Enemy>(); //Использование смарт указателей
 		if (wave % 5 == 0 && enemysCount == 0) {//Босс
 			std::unique_ptr<BossEnemy> boss = std::make_unique<BossEnemy>();
 			if (enemyMoney >= boss->getCost()) {
 				enemyMoney -= boss->getCost();
+				boss->setMoveStrategy(std::make_unique<SlowMove>());
 				enemys.push_back(std::move(boss));
 				enemysCount++;
 				enemys[enemysCount - 1]->setPlace(-1 * enemysCount);
 			}
 		}
-		int r = rand() % 3;//Обычный враг
+		std::unique_ptr<Enemy> newEnemy = std::make_unique<Enemy>(); //Использование смарт указателей
+		int r = rand() % 4;//Обычный враг
 		r++;
 		switch (r) {
 		case 1:
@@ -575,6 +667,7 @@ public:
 			newEnemy->setHp(100);
 			newEnemy->setDmg(10);
 			newEnemy->setPct('Z');
+			newEnemy->setMoveStrategy(std::make_unique<NormalMove>());
 			break;
 		case 2:
 			newEnemy->setName("Skeleton");
@@ -582,6 +675,7 @@ public:
 			newEnemy->setHp(30);
 			newEnemy->setDmg(20);
 			newEnemy->setPct('S');
+			newEnemy->setMoveStrategy(std::make_unique<NormalMove>());
 			break;
 		case 3:
 			newEnemy->setName("Angry Zombe");
@@ -589,7 +683,16 @@ public:
 			newEnemy->setHp(75);
 			newEnemy->setDmg(25);
 			newEnemy->setPct('A');
+			newEnemy->setMoveStrategy(std::make_unique<AdaptiveMove>());
 			break;
+		case 4:
+			FastEnemy fastEnemy = FastEnemy();
+			newEnemy->setName(fastEnemy.getName());
+			newEnemy->setCost(fastEnemy.getCost());
+			newEnemy->setHp(fastEnemy.getHp());
+			newEnemy->setDmg(fastEnemy.getDmg());
+			newEnemy->setPct(fastEnemy.getPct());
+			newEnemy->setMoveStrategy(std::make_unique<FastMove>());
 		}
 		if (enemyMoney >= newEnemy->getCost()) {
 			enemyMoney -= newEnemy->getCost();
@@ -638,9 +741,10 @@ public:
 					if (enemys[i]->getPlace() != 38 && enemys[i]->getPlace() >= 0) {
 						gameMap.clear(enemys[i]->getPlace(), 1);
 						enemys[i]->Move();
+						if (enemys[i]->getPlace() > 38) enemys[i]->setPlace(38);
 						gameMap.placeEnemy(enemys[i]->getPlace(), enemys[i]->getPct());
 					}
-					else if (enemys[i]->getPlace() >= 0) {
+					else if (enemys[i]->getPlace() == 38) {
 						mainTower.takeDmg(enemys[i]->getDmg());
 					}
 					else { 
@@ -658,7 +762,7 @@ public:
 				}
 			}
 			gameMap.printMap();//Вывод карты и цикл, пока все враги живы или не уничтожена главная башня
-			Sleep(750);
+			Sleep(800);
 			if (enemysCount == 0) f = 0;
 			if (mainTower.isAlive() != true) f = 0;
 		} while (f);
