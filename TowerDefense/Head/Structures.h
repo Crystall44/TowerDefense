@@ -138,11 +138,11 @@ public:
 	}
 	void setPlace(int p) { place = p; }
 
-	void setMoveStrategy(std::unique_ptr<MoveStrategy> newStrategy) {
+	void setMoveStrategy(std::unique_ptr<MoveStrategy> newStrategy) { //Задаётся стратегия движения
 		moveStrategy = std::move(newStrategy);
 	}
 
-	virtual void Move() {//Движение врага на 1 клетку
+	virtual void Move() {//Движение врага
 		moveStrategy->Move(place, hp, maxHp);
 	}
 
@@ -171,7 +171,7 @@ public:
 	~BossEnemy() {};
 };
 
-
+//Класс быстрого врага
 class FastEnemy : public Enemy {
 public:
 	FastEnemy() : Enemy() {
@@ -182,10 +182,6 @@ public:
 		setPct('F');
 		maxHp = hp;
 		setPlace(-2);
-	}
-
-	void Move() override {
-		place += 2;
 	}
 
 	~FastEnemy() {}
@@ -628,7 +624,7 @@ private:
 public:
 	Game() {
 		enemysCount = 0;
-		money = 500;
+		money = 20;
 		enemyMoney = 20;
 	}
 	int getMoney() {
