@@ -8,12 +8,14 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 //Интерфейс поведения - движение врага
 class MoveStrategy {
 public:
 	virtual ~MoveStrategy() = default;
 	virtual void Move(int& place, int hp, int maxHp) = 0;
+	virtual std::string getSpeedDescription() = 0; 
 };
 
 //Обычная скорость движение
@@ -22,6 +24,9 @@ public:
 	void Move(int& place, int hp, int maxHp) override {
 		place++;//Движение на 1 клетку
 	}
+	std::string getSpeedDescription() override {
+		return "Обычная скорость. 1 клетка за 1 кадр.";
+	}
  };
 
 //Быстрое передвижение
@@ -29,6 +34,9 @@ class FastMove : public MoveStrategy {
 public:
 	void Move(int& place, int hp, int maxHp) override {
 		place += 2;//Движение на 2 клетки
+	}
+	std::string getSpeedDescription() override {
+		return "Быстрая скорость. 2 клетки за 1 кадр.";
 	}
 };
 
@@ -43,12 +51,18 @@ public:
 			place += 2;
 		}
 	}
+	std::string getSpeedDescription() override {
+		return "Переменчивая скорость. 1 клетка за 1 кадр, но 2 клетки за кадр если здоровье меньше половины.";
+	}
 };
 
 //Стоящее на месте поведение врага(будет использованно в будущем)
 class StuckMove : public MoveStrategy {
 public:
 	void Move(int& place, int hp, int maxHp) override {} //На месте(например,оглушение)
+	std::string getSpeedDescription() override {
+		return "Стоит на месте.";
+	}
 };
 
 //Медленная скорость - для босса
@@ -68,6 +82,9 @@ public:
 			place++;
 		}
 	} 
+	std::string getSpeedDescription() override {
+		return "Медленная скорость. 1 клетка за 2 кадра.";
+	}
 };
 
 //Структура врага
@@ -84,13 +101,15 @@ protected:
 public:
 	// Конструктор инициализирует врага
 	Enemy() {
-		hp = 0;
 		cost = 0;
+		hp = 0;
 		dmg = 0;
 		pct = ' ';
 		place = -1;
 	}
 	~Enemy() {}
+	Enemy(const char* n, int c, int h, int d, char p, std::unique_ptr<MoveStrategy> strategy) :
+		name(n), hp(h), maxHp(h), cost(c), dmg(d), pct(p), place(0), moveStrategy(std::move(strategy)) {}
 	Enemy(const Enemy& other) { //Конструктор копирования
 		name = other.name;
 		cost = other.cost;
@@ -136,6 +155,9 @@ public:
 	short int getHp() {
 		return hp;
 	}
+	short int getMaxHp() {
+		return maxHp;
+	}
 	void setPlace(int p) { place = p; }
 
 	void setMoveStrategy(std::unique_ptr<MoveStrategy> newStrategy) { //Задаётся стратегия движения
@@ -156,6 +178,28 @@ public:
 	int getPlace() {
 		return place;
 	}
+
+	virtual std::string getSpeedDescription() {
+		if (moveStrategy) {
+			return moveStrategy->getSpeedDescription();
+		}
+		return nullptr;
+	}
+
+	virtual std::string getDescription() {
+		if (pct == 'Z') {
+			return "Зомби - обычный враг, который имеет большое количество здоровья. \nНе представляет особой угрозы, но может быть щитом для других врагов, что делает его довольно опасным.\n Имеет малый урон и обычную скорость.\n";
+		}
+		else if (pct == 'S') {
+			return "Скелет - обычный враг, который имеет мало здоровья, появляется часто.\nВ одиночку не представляет никакой угрозы.\nНо могут создавать неприятности, ведь может появится сразу много скелетов за счёт их малой редкости.\n";
+		}
+		else if (pct == 'A') {
+			return "Злой зомби - училенный зомби, с меньшим количеством здоровья, но с большим уроном.\nПредставляет сам по себе опасность, ведь как только его здоровье падает до половины - начинает двигаться в 2 раза быстрее.\n";
+		}
+		else {
+			return "Информации об этом враге нет.";
+		}
+	}
 };
 
 //Структура босса - дочерный класс Enemy
@@ -167,8 +211,13 @@ public:
 		setCost(20);
 		setDmg(50);
 		setPct('B');
+		setMoveStrategy(std::make_unique<SlowMove>());
 	}
 	~BossEnemy() {};
+
+	std::string getDescription() override {
+		return "Босс - выходит на каждую 5 волну, и только 1 босс на карте. Очень медленный, но очень опасный враг.\nОгромное количество здоровья и урона, до него игра кажеться совсем лёгкой,не так ли?\n";
+	}
 };
 
 //Класс быстрого врага
@@ -180,11 +229,118 @@ public:
 		setCost(10);
 		setDmg(20);
 		setPct('F');
-		maxHp = hp;
-		setPlace(-2);
+		setMoveStrategy(std::make_unique<FastMove>());
 	}
 
 	~FastEnemy() {}
+
+	std::string getDescription() override {
+		return "Быстрый враг - соответствует названию, быстрый и опасный враг.\nДвигается очень быстро, наносит много урона, но у него совсем мало здоровья.\n";
+	}
+};
+
+// Класс для управления врагами
+class EnemyManager {
+private:
+	std::vector<std::unique_ptr<Enemy>> enemys;
+public:
+	//Добавить врага
+	void addEnemy(std::unique_ptr<Enemy> enemy) {
+		enemys.push_back(std::move(enemy));
+	}
+
+	void showAll(bool f) {
+		for (auto& enemy : enemys) {
+			std::cout << "Имя: " << enemy->getName() << "\n";
+			if (f) {
+				std::cout << "Здоровье: " << enemy->getHp() << "/" << enemy->getMaxHp() << "\n";
+			}
+			else std::cout << "Здоровье: " << enemy->getMaxHp() << "\n";
+			std::cout << "Урон: " << enemy->getDmg() << "\n";
+			std::cout << "Скорость: " << enemy->getSpeedDescription() << "\n";
+			std::cout << "Появляется на карте в таком виде: " << enemy->getPct() << "\n";
+			if (f) {
+				std::cout << "Стоимость(редкость): " << enemy->getCost() << "\n";
+				std::cout << "Позиция: " << enemy->getPlace() << "\n";
+				std::cout << "Описание: " << enemy->getDescription() << "\n\n";
+			}
+			else std::cout << "\n";
+		}
+	}
+
+	//Сортировка по здоровью
+	void sortByHp() {
+		std::sort(enemys.begin(), enemys.end(), [](const std::unique_ptr<Enemy>& a, const std::unique_ptr<Enemy>& b) {
+			return a->getHp() < b->getHp(); // Сортировка по здоровью
+			});
+	}
+
+	// Сортировка по стоимости
+	void sortByCost() {
+		std::sort(enemys.begin(), enemys.end(), [](const std::unique_ptr<Enemy>& a, const std::unique_ptr<Enemy>& b) {
+			return a->getCost() < b->getCost(); // Сортировка по стоимости
+			});
+	}
+
+	// Сортировка по урону
+	void sortByDmg() {
+		std::sort(enemys.begin(), enemys.end(), [](const std::unique_ptr<Enemy>& a, const std::unique_ptr<Enemy>& b) {
+			return a->getDmg() < b->getDmg(); // Сортировка по урону
+			});
+	}
+
+	//Поиск врага по имени
+	void findEnemyByName(const std::string& name, bool details) {
+		bool f = false;
+		for (auto& enemy : enemys) {
+			if (enemy->getName() == name) {
+				f = true;
+				std::cout << "Враг с таким именем найден!\n";
+				std::cout << "Имя: " << enemy->getName() << "\n";
+				if (details) {
+					std::cout << "Здоровье: " << enemy->getHp() << "/" << enemy->getMaxHp() << "\n";
+				} else std::cout << "Здоровье: " << enemy->getMaxHp() << "\n";
+				std::cout << "Урон: " << enemy->getDmg() << "\n";
+				std::cout << "Скорость: " << enemy->getSpeedDescription() << "\n";
+				std::cout << "Появляется на карте в таком виде: " << enemy->getPct() << "\n";
+				if (details) {
+					std::cout << "Стоимость(редкость): " << enemy->getCost() << "\n";
+					std::cout << "Позиция: " << enemy->getPlace() << "\n";
+					std::cout << "Описание: " << enemy->getDescription() << "\n";
+				}
+			}
+		}
+		if (!f) {
+			std::cout << "Враг с таким именем не найден.\n";
+		}
+	}
+
+	//Поиск врага по картинке
+	void findEnemyByPct(char pct, bool details) {
+		bool f = false;
+		for (auto& enemy : enemys) {
+			if (enemy->getPct() == pct) {
+				f = true;
+				std::cout << "Враг с такой картинкой найден!\n";
+				std::cout << "Имя: " << enemy->getName() << "\n";
+				if (details) {
+					std::cout << "Здоровье: " << enemy->getHp() << "/" << enemy->getMaxHp() << "\n";
+				}
+				else std::cout << "Здоровье: " << enemy->getMaxHp() << "\n";
+				std::cout << "Урон: " << enemy->getDmg() << "\n";
+				std::cout << "Скорость: " << enemy->getSpeedDescription() << "\n";
+				std::cout << "Появляется на карте в таком виде: " << enemy->getPct() << "\n";
+				if (details) {
+					std::cout << "Стоимость(редкость): " << enemy->getCost() << "\n";
+					std::cout << "Позиция: " << enemy->getPlace() << "\n";
+					std::cout << "Описание: " << enemy->getDescription() << "\n";
+				}
+			}
+		}
+		if (!f) {
+			std::cout << "Враг с такой картинкой не найден.\n";
+		}
+	}
 };
 
 //Структура главной башни
@@ -255,6 +411,7 @@ protected:
 	short int range;
 	bool boostTower;
 	int attackSpeed;
+	int type;
 public:
 	TowerDef(short int dmg1, short int lvl1, short int range1, bool boostTower1) {
 		dmg = dmg1;
@@ -292,6 +449,10 @@ public:
 	virtual short int getDamage() {
 		return dmg;
 	}
+	virtual int getType() {
+		return type;
+	}
+	virtual void setType(int t) { type = t; }
 	virtual short int* getLvl() { //Возврат значения через указатель
 		return &lvl;
 	}
@@ -306,6 +467,7 @@ public:
 	}
 	virtual void Info() {//Информация о башне
 		std::cout << "Уровень = " << lvl << ", урон = " << dmg << ", дальность = " << range << "\n";
+		if (type == 1) std::cout << "Базовая башня.\n";
 	}
 	virtual void Build() {//Построить башню
 		range = 2;
@@ -501,7 +663,6 @@ public:
 					std::cin >> i;
 				} while (i < 1 || i > 8);
 				TowerDef* deftow = deftowers[i - 1];
-				deftow->Info();
 				do {
 					TowerDef* usual;
 					usual = new TowerDef(0, 0, 0, false);
@@ -509,6 +670,18 @@ public:
 					sniper = new SniperTower(0, 0, 0, false);
 					RapidFireTower* rapid;
 					rapid = new RapidFireTower(10, 2, 1, true, 2);
+					if (deftow->getType() == 1) {
+						deftow->Info();
+					}
+					else if (deftow->getType() == 2) {
+						sniper->clone(*deftow);
+						sniper->Info();
+					}
+					else if(deftow->getType() == 3) { 
+						rapid->clone(*deftow);
+						deftow->Info();
+						rapid->Info(); 
+					}
 					std::cout << "\n1.Купить башню - 10\n2.Улучшить - " << upgradeCost << "\n3.Удалить башню\n4.Выход\n";
 					std::cin >> choice2;
 					switch (choice2) {
@@ -527,6 +700,7 @@ public:
 							if (money >= 10 && *deftow->getLvl() == 0) {
 								gameMap.towerPlace(i - 1, 1);
 								deftow->Build();
+								deftow->setType(1);
 								money -= 10;
 							}
 							else if (*deftow->getLvl()) {
@@ -544,11 +718,14 @@ public:
 									gameMap.towerPlace(i - 1, 2);
 									sniper->BuildSpecial();
 									*deftow = *sniper;
+									deftow->setType(2);
 								}
 								else {
+									rapid = new RapidFireTower(10, 2, 1, true, 2);
 									gameMap.towerPlace(i - 1, 3);
 									rapid->BuildSpecial();
 									deftow->clone(*rapid);
+									deftow->setType(3);
 								}
 								money -= 25;
 							}
@@ -654,9 +831,10 @@ public:
 			}
 		}
 		std::unique_ptr<Enemy> newEnemy = std::make_unique<Enemy>(); //Использование смарт указателей
-		int r = rand() % 4;//Обычный враг
+		int r = rand() % 5;//Обычный враг
 		r++;
-		switch (r) {
+		FastEnemy fastEnemy = FastEnemy();
+		switch(r) {
 		case 1:
 			newEnemy->setName("Zombe");
 			newEnemy->setCost(4);
@@ -682,13 +860,20 @@ public:
 			newEnemy->setMoveStrategy(std::make_unique<AdaptiveMove>());
 			break;
 		case 4:
-			FastEnemy fastEnemy = FastEnemy();
 			newEnemy->setName(fastEnemy.getName());
 			newEnemy->setCost(fastEnemy.getCost());
 			newEnemy->setHp(fastEnemy.getHp());
 			newEnemy->setDmg(fastEnemy.getDmg());
 			newEnemy->setPct(fastEnemy.getPct());
 			newEnemy->setMoveStrategy(std::make_unique<FastMove>());
+		case 5:
+			newEnemy->setName("Fly");
+			newEnemy->setCost(1);
+			newEnemy->setHp(5);
+			newEnemy->setDmg(10);
+			newEnemy->setPct('*');
+			newEnemy->setMoveStrategy(std::make_unique<NormalMove>());
+			break;
 		}
 		if (enemyMoney >= newEnemy->getCost()) {
 			enemyMoney -= newEnemy->getCost();
