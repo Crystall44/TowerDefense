@@ -41,7 +41,7 @@ int main()
 			if (wave % 5 == 0) booster++;
 			mon = game.getEnemyMoney() / 20;
 			while (game.getEnemyMoney() > 0) {
-				game.buyEnemy(wave);
+				game.buyEnemy(wave, enemyManager);
 			}
 			for (int i = 0; i < mon; i++) {
 				game.upenemys();

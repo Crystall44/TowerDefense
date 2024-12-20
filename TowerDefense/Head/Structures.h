@@ -819,7 +819,7 @@ public:
 	void upenemys() {//Повышение количества врагов
 		enemyMoney += 20;
 	}
-	void buyEnemy(int wave) {//Рандомайзер и покупка врага(не пользователем, компьютером)
+	void buyEnemy(int wave, EnemyManager& allEnemys) {//Рандомайзер и покупка врага(не пользователем, компьютером)
 		if (wave % 5 == 0 && enemysCount == 0) {//Босс
 			std::unique_ptr<BossEnemy> boss = std::make_unique<BossEnemy>();
 			if (enemyMoney >= boss->getCost()) {
